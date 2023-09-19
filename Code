@@ -1,0 +1,127 @@
+import matplotlib.pyplot as plt
+from sklearn.cluster import KMeans
+x = dfbb['latitude'].values
+y = dfbb['longitude'].values
+x=x.reshape(124,1)
+y=y.reshape(124,1)
+Z=np.concatenate((x,y),axis=1)
+kmeans = KMeans(n_clusters = 3)
+kmeans.fit(Z)
+
+plt.figure(figsize=(6,6))
+plt.scatter(Z[:,0],Z[:,1],c=kmeans.labels_);
+
+C = kmeans.cluster_centers_
+plt.scatter(C[:,0],C[:,1],c='r',marker='o',s=300,alpha=0.5,edgecolor='none');
+
+import pandas as pd
+import numpy as np
+
+
+df = pd.read_csv("doordash.csv")
+columns = ['loc_name', 'address', 'cuisines','latitude','longitude','review_count']
+dfbb = pd.DataFrame(df, columns=columns)
+#dfbb = dfbb[dfbb['searched_state'].str.contains('NY')]
+#dfbb = dfbb[dfbb['searched_city'].str.contains('Brooklyn')]
+dfbb = dfbb[dfbb['address'].str.contains('11221')]
+dfbb = dfbb.drop_duplicates()
+dfbb=dfbb.dropna(axis = 'rows', how='any')
+dfbb
+
+major=dfbb[~dfbb['cuisines'].str.contains('Grocery|Dessert|Smoothies')]
+xa = major['latitude'].values
+ya = major['longitude'].values
+xa=xa.reshape(84,1)
+ya=ya.reshape(84,1)
+major_val=np.concatenate((xa,ya),axis=1)
+kmeans_major = KMeans(n_clusters = 3)
+kmeans_major.fit(major_val)
+
+plt.figure(figsize=(6,6))
+plt.scatter(major_val[:,0],major_val[:,1],c=kmeans_major.labels_);
+
+C_major = kmeans_major.cluster_centers_
+plt.scatter(C_major[:,0],C_major[:,1],c='r',marker='o',s=300,alpha=0.5,edgecolor='none');
+
+minor=dfbb[dfbb['cuisines'].str.contains('Grocery|Dessert|Smoothies')]
+xi = minor['latitude'].values
+yi = minor['longitude'].values
+xi=xi.reshape(40,1)
+yi=yi.reshape(40,1)
+minor_val=np.concatenate((xi,yi),axis=1)
+kmeans_minor = KMeans(n_clusters = 3)
+kmeans_minor.fit(minor_val)
+
+plt.figure(figsize=(6,6))
+plt.scatter(minor_val[:,0],minor_val[:,1],c=kmeans_minor.labels_);
+
+C_minor = kmeans_minor.cluster_centers_
+plt.scatter(C_minor[:,0],C_minor[:,1],c='r',marker='o',s=300,alpha=0.5,edgecolor='none');
+
+from scipy.special import factorial
+from scipy import stats
+
+T = np.linspace(0, 5,6)
+
+def PD(k, lmd):
+    return np.power(lmd, k) * np.exp(-lmd) / factorial(k)
+
+sum_order=sum(dfbb['review_count']) #total order in one week
+
+
+#there are 27,389 orders in one month, and in 1.577 min will 1 order occured
+#conclude from weekly review count data and reports
+order=30*24*60/sum_order#/(7*24*20) 
+
+
+lmd_ma=(84/124)*order #according to proportion, and calculate major time interval per order
+lmd_mi=(40/124)*order
+
+plt.figure(figsize=(10, 6))
+
+#lmd is the average time interval between per order, in unit of min/order
+plt.plot(T, PD(T, lmd=lmd_ma), '^--', label=rf'$\lambda=1.0684$,Major Order')
+plt.plot(T, PD(T, lmd=lmd_mi), '.-', label=rf'$\lambda=0.5088$,Minor Order')
+
+
+plt.xlabel("time interval")
+plt.ylabel("Probability")
+plt.title("Order Time Interval in Possion Distribution")
+plt.legend()
+plt.show()
+
+import math
+ 
+def p_possion(k, m):
+    kjie = 1  #k!
+    for i in range(1, k+1):
+        kjie*=i
+    pk = math.pow(m, k)/kjie*math.e**(-m)
+    return pk
+
+p1=0
+p2=0
+
+for i in range(0,2):
+    p1+=p_possion(i,lmd_ma) #'Probability of major order happens in 2 mins
+    p2+=p_possion(i,lmd_mi)
+print("Probability of joint order happen in 2mins is:",p1*p2)
+
+from itertools import product
+#only C_major and C-minor points without P
+plt.figure(figsize=(6,6))
+plt.scatter(C_major[:,0],C_major[:,1],c='r',marker='o',s=300,alpha=0.5,edgecolor='none');
+plt.scatter(C_minor[:,0],C_minor[:,1],c='b',marker='o',s=300,alpha=0.5,edgecolor='none');
+for points in product(C_major, C_minor):
+    point1, point2 = zip(*points)
+    plt.plot(point1, point2)
+plt.show()
+
+#All C_major and C-minor points without P
+plt.figure(figsize=(6,6))
+plt.scatter(major_val[:,0],major_val[:,1],c=kmeans_major.labels_);
+plt.scatter(minor_val[:,0],minor_val[:,1],c=kmeans_minor.labels_);
+for points in product(major_val, minor_val):
+    point1, point2 = zip(*points)
+    plt.plot(point1, point2)
+plt.show()
